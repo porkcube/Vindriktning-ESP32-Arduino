@@ -12,25 +12,26 @@ ESP8266WiFiMulti wifiMulti;
 #include <InfluxDbCloud.h>
 
 // Unique device name for InfluxDB
-#define DEVICE_NAME ""
+#define DEVICE_NAME "Vindriktning001"
 // 3 byte header + 16 data bytes + CS signal shows up as random 20th byte
 #define MAX_BUFFER 32 // 20
 // Max AQI value, in theory it shouldn't ever read above this as it's AQI's actual limit
 #define MAX_AQI 500
 // WiFi AP SSID
-#define WIFI_SSID ""
+#define WIFI_SSID "DONTWANTNONEUNLESSYOUGOTBUNSHUN"
 // WiFi password
-#define WIFI_PASSWORD ""
+#define WIFI_PASSWORD "thisisacleverpassword"
 // InfluxDB server url, e.g. http://192.168.1.48:8086 (don't use localhost, always server name or ip address)
-#define INFLUXDB_URL ""
+#define INFLUXDB_URL "http://10.0.0.92:8086"
 // InfluxDB database name
-#define INFLUXDB_DATABASE ""
+#define INFLUXDB_DATABASE "telegraf"
 // InfluxDB user
-#define INFLUXDB_USER ""
+#define INFLUXDB_USER "influxdb"
 // InfluxDB pass
-#define INFLUXDB_PASSWORD ""
+#define INFLUXDB_PASSWORD "influxdb"
 // Set timezone string according to https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
-#define TZ_INFO ""
+// #define TZ_INFO "EST+5EDT,M3.2.0/2,M11.1.0/2"
+#define TZ_INFO "EST5EDT"
 
 // Single InfluxDB instance
 InfluxDBClient client;
@@ -80,6 +81,7 @@ void setup() {
 
 void loop() {
   byte DF[MAX_BUFFER];
+  int aqiOld = 0;
   int byte = 0;
   int index = 0;
   bool debug = false; // set to true for useful console messages
@@ -101,7 +103,7 @@ void loop() {
           Serial.println(DF[index], HEX);
         }
 
-        if (index >= 6 && DF[index - 6] == 0x16 && DF[index - 5] == 0x11 && DF[index - 4] == 0x0B) { // && DF[index] != 0) {
+        if (index >= 6 && DF[index - 6] == 0x16 && DF[index - 5] == 0x11 && DF[index - 4] == 0x0B) {
           reading = true;
           break;
         }
@@ -122,14 +124,16 @@ void loop() {
   if (reading) {
     int aqi = (DF[index - 1] * 256) + DF[index];
 
-    // If it reads > 500 something is way off
-    if (aqi > MAX_AQI) {
-      if (debug) {
-        Serial.print("aqi: ");
-        Serial.print(aqi);
-        Serial.println(" > MAX_AQI - setting to 0");
-      }
-      aqi = 0; // 500;
+    // If it reads > 500 or 0 something is way off
+    if (aqi >= MAX_AQI || aqi <= 0) {
+      aqi = aqiOld;
+    } else {
+      aqiOld = aqi;
+    }
+
+    if (debug) {
+      Serial.print("aqi: ");
+      Serial.println(aqi);
     }
     // Store AQI reading
     sensor.addField("aqi", aqi);
@@ -156,6 +160,6 @@ void loop() {
   }
 
   // Wait 20s
-  Serial.println("Waiting 20s");
-  delay(20000);
+  Serial.println("Waiting 15s");
+  delay(15000);
 }
