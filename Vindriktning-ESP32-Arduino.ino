@@ -32,6 +32,8 @@ ESP8266WiFiMulti wifiMulti;
 // Set timezone string according to https://www.gnu.org/software/libc/manual/html_node/TZ-Variable.html
 // #define TZ_INFO "EST+5EDT,M3.2.0/2,M11.1.0/2"
 #define TZ_INFO "EST5EDT"
+// use to help with noisy readings
+int aqiOld;
 
 // Single InfluxDB instance
 InfluxDBClient client;
@@ -81,7 +83,6 @@ void setup() {
 
 void loop() {
   byte DF[MAX_BUFFER];
-  int aqiOld = 0;
   int byte = 0;
   int index = 0;
   bool debug = false; // set to true for useful console messages
@@ -133,7 +134,9 @@ void loop() {
 
     if (debug) {
       Serial.print("aqi: ");
-      Serial.println(aqi);
+      Serial.print(aqi);
+      Serial.print(" / aqiOld: ");
+      Serial.println(aqiOld);
     }
     // Store AQI reading
     sensor.addField("aqi", aqi);
